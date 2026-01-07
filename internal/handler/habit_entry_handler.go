@@ -20,12 +20,16 @@ func (h *HabitEntryHandler) Complete(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
 
-	if err := h.service.CompleteHabit(userID, habitID); err != nil {
+	badges, err := h.service.CompleteHabit(userID, habitID)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "habit marked as completed"})
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "habit marked as completed",
+		"new_badges": badges,
+	})
 }
 
 // POST /habits/:id/miss

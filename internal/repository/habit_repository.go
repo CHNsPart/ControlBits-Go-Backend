@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/mjubayerquanfinca/habit-tracker/internal/models"
 )
@@ -99,17 +100,38 @@ func (r *HabitRepository) Delete(habitID, userID string) error {
 	return err
 }
 
-// INCREMENT STREAK
-func (r *HabitRepository) IncrementStreak(habitID, userID string) error {
+// UPDATE STREAK ON COMPLETION
+func (r *HabitRepository) UpdateStreakOnCompletion(habitID, userID string, previousDate time.Time) (int, int, error) {
 	query := `
 		UPDATE habits
-		SET current_streak = current_streak + 1,
-		    longest_streak = GREATEST(longest_streak, current_streak + 1),
+		SET current_streak = CASE
+		        WHEN EXISTS (
+		            SELECT 1 FROM habit_entries
+		            WHERE habit_id = $1 AND entry_date = $2 AND status = 'completed'
+		        )
+		        THEN current_streak + 1
+		        ELSE 1
+		    END,
+		    longest_streak = GREATEST(longest_streak, CASE
+		        WHEN EXISTS (
+		            SELECT 1 FROM habit_entries
+		            WHERE habit_id = $1 AND entry_date = $2 AND status = 'completed'
+		        )
+		        THEN current_streak + 1
+		        ELSE 1
+		    END),
 		    updated_at = NOW()
-		WHERE id = $1 AND user_id = $2
+		WHERE id = $1 AND user_id = $3
+		RETURNING current_streak, longest_streak
 	`
-	_, err := r.db.Exec(query, habitID, userID)
-	return err
+	var currentStreak int
+	var longestStreak int
+	err := r.db.QueryRow(query, habitID, previousDate, userID).Scan(&currentStreak, &longestStreak)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return currentStreak, longestStreak, nil
 }
 
 // RESET STREAK

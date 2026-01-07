@@ -32,7 +32,8 @@ func main() {
 
 	// ---------- HABIT ENTRIES ----------
 	entryRepo := repository.NewHabitEntryRepository(db)
-	entryService := service.NewHabitEntryService(entryRepo, habitRepo)
+	badgeRepo := repository.NewBadgeRepository(db)
+	entryService := service.NewHabitEntryService(entryRepo, habitRepo, badgeRepo)
 	entryHandler := handler.NewHabitEntryHandler(entryService)
 
 	// ---------- ROUTES ----------

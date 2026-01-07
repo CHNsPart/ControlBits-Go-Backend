@@ -44,20 +44,22 @@ func main() {
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
+		auth.POST("/refresh", authHandler.RefreshToken)
+		auth.POST("/logout", authHandler.Logout)
+		auth.POST("/forgot-password", authHandler.RequestPasswordReset)
+		auth.POST("/reset-password", authHandler.ConfirmPasswordReset)
 	}
 
 	// Protected routes
-	protected := api.Group("/")
+	protected := api.Group("/users")
 	protected.Use(middleware.JWTAuthMiddleware("super-secret-key"))
 	{
-		protected.GET("/me", func(c *gin.Context) {
-			userID := c.GetString("userID")
-			c.JSON(200, gin.H{"user_id": userID})
-		})
 
-		// User update and delete
-		protected.PUT("/user", authHandler.Update)
-		protected.DELETE("/user", authHandler.Delete)
+		// User profile
+		protected.GET("/me", authHandler.GetMe)
+		protected.PUT("/me", authHandler.Update)
+		protected.PUT("/me/password", authHandler.ChangePassword)
+		protected.DELETE("/me", authHandler.Delete)
 
 		// Habits CRUD
 		protected.POST("/habits", habitHandler.Create)

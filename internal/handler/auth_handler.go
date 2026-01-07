@@ -69,6 +69,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		})
 		return
 	}
+
+	if req.Email == "" || req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "email and password are required",
+		})
+		return
+	}
+
+	accessToken, err := h.authService.Login(req.Email, req.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": accessToken,
+		"message":      "login successful",
+	})
 }
 
 // PASSWORD RESET REQUEST API
@@ -131,9 +151,8 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 func (h *AuthHandler) Update(c *gin.Context) {
 	userID := c.GetString("userID")
 	var req struct {
-		Email    string `json:"email"`
-		Name     string `json:"name"`
-		Password string `json:"password"`
+		Email string `json:"email"`
+		Name  string `json:"name"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -141,13 +160,13 @@ func (h *AuthHandler) Update(c *gin.Context) {
 		})
 		return
 	}
-	if req.Email == "" && req.Name == "" && req.Password == "" {
+	if req.Email == "" && req.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "no fields to update",
 		})
 		return
 	}
-	if err := h.authService.UpdateUser(userID, req.Email, req.Name, req.Password); err != nil {
+	if err := h.authService.UpdateUser(userID, req.Email, req.Name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -171,4 +190,50 @@ func (h *AuthHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "user deleted successfully",
 	})
+}
+
+// GET /users/me - Get current user profile
+func (h *AuthHandler) GetMe(c *gin.Context) {
+	userID := c.GetString("userID")
+	user, err := h.authService.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"id":         user.ID,
+		"email":      user.Email,
+		"name":       user.Name,
+		"created_at": user.CreatedAt,
+		"updated_at": user.UpdatedAt,
+	})
+}
+
+// PUT /users/me/password - Change password for current user
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	userID := c.GetString("userID")
+	var req struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	if req.OldPassword == "" || req.NewPassword == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "old and new password required"})
+		return
+	}
+	if err := h.authService.ChangePassword(userID, req.OldPassword, req.NewPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "password changed successfully"})
+}
+
+// POST /auth/logout - Invalidate refresh token
+func (h *AuthHandler) Logout(c *gin.Context) {
+	userID := c.GetString("userID")
+	h.authService.Logout(userID)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

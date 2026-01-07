@@ -171,7 +171,7 @@ func (s *AuthService) RefreshAccessToken(refreshTokenString string) (string, err
 }
 
 // UpdateUser updates user info (email, name, password)
-func (s *AuthService) UpdateUser(userID, email, name, password string) error {
+func (s *AuthService) UpdateUser(userID, email, name string) error {
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
 		return err
@@ -182,17 +182,39 @@ func (s *AuthService) UpdateUser(userID, email, name, password string) error {
 	if name != "" {
 		user.Name = name
 	}
-	if password != "" {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			return err
-		}
-		user.PasswordHash = string(hashedPassword)
-	}
+
 	return s.userRepo.Update(user)
 }
 
 // DeleteUser deletes a user by ID
 func (s *AuthService) DeleteUser(userID string) error {
 	return s.userRepo.Delete(userID)
+}
+
+// GetUserByID returns user by ID
+func (s *AuthService) GetUserByID(userID string) (*models.User, error) {
+	return s.userRepo.FindByID(userID)
+}
+
+// ChangePassword changes the password for a user after verifying the old password
+func (s *AuthService) ChangePassword(userID, oldPassword, newPassword string) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+	// Verify old password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+		return errors.New("old password is incorrect")
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hashedPassword)
+	return s.userRepo.Update(user)
+}
+
+// Logout invalidates the refresh token for a user
+func (s *AuthService) Logout(userID string) {
+	delete(s.refreshTokens, userID)
 }

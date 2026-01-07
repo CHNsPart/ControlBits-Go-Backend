@@ -55,6 +55,10 @@ func main() {
 			c.JSON(200, gin.H{"user_id": userID})
 		})
 
+		// User update and delete
+		protected.PUT("/user", authHandler.Update)
+		protected.DELETE("/user", authHandler.Delete)
+
 		// Habits CRUD
 		protected.POST("/habits", habitHandler.Create)
 		protected.GET("/habits", habitHandler.GetAll)

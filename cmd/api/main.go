@@ -64,12 +64,18 @@ func main() {
 		// Habits CRUD
 		protected.POST("/habits", habitHandler.Create)
 		protected.GET("/habits", habitHandler.GetAll)
+		protected.GET("/habits/:id", habitHandler.GetByID)
 		protected.PUT("/habits/:id", habitHandler.Update)
 		protected.DELETE("/habits/:id", habitHandler.Delete)
+		protected.POST("/habits/:id/archive", habitHandler.Archive)
+		protected.POST("/habits/:id/unarchive", habitHandler.Unarchive)
 
 		// Habit complete / miss
 		protected.POST("/habits/:id/complete", entryHandler.Complete)
 		protected.POST("/habits/:id/miss", entryHandler.Miss)
+		protected.GET("/habits/:id/entries", entryHandler.ListEntries)
+		protected.POST("/habits/:id/entries", entryHandler.CreateEntry)
+		protected.DELETE("/habits/:id/entries/:entryId", entryHandler.DeleteEntry)
 	}
 
 	log.Println("API server running on :8080")

@@ -38,6 +38,18 @@ func (s *HabitService) Update(userID, habitID, name, description string) error {
 	return s.repo.Update(habit)
 }
 
+func (s *HabitService) GetByID(userID, habitID string) (*models.Habit, error) {
+	return s.repo.GetByID(habitID, userID)
+}
+
 func (s *HabitService) Delete(userID, habitID string) error {
 	return s.repo.Delete(habitID, userID)
+}
+
+func (s *HabitService) Archive(userID, habitID string) error {
+	return s.repo.Archive(habitID, userID)
+}
+
+func (s *HabitService) Unarchive(userID, habitID string) error {
+	return s.repo.Unarchive(habitID, userID)
 }

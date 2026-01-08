@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mjubayerquanfinca/habit-tracker/internal/service"
@@ -43,4 +44,67 @@ func (h *HabitEntryHandler) Miss(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "habit marked as missed"})
+}
+
+// GET /habits/:id/entries
+func (h *HabitEntryHandler) ListEntries(c *gin.Context) {
+	habitID := c.Param("id")
+	var startDatePtr, endDatePtr *time.Time
+
+	start := c.Query("start_date")
+	end := c.Query("end_date")
+	if start != "" {
+		t, err := time.Parse("2006-01-02", start)
+		if err == nil {
+			startDatePtr = &t
+		}
+	}
+	if end != "" {
+		t, err := time.Parse("2006-01-02", end)
+		if err == nil {
+			endDatePtr = &t
+		}
+	}
+
+	entries, err := h.service.ListEntries(habitID, startDatePtr, endDatePtr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, entries)
+}
+
+// POST /habits/:id/entries
+func (h *HabitEntryHandler) CreateEntry(c *gin.Context) {
+	habitID := c.Param("id")
+	var req struct {
+		Date   string `json:"date"`
+		Status string `json:"status"`
+		Note   string `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Status == "" || req.Date == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format (use YYYY-MM-DD)"})
+		return
+	}
+	if err := h.service.CreateEntry(habitID, date, req.Status, req.Note); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "entry created"})
+}
+
+// DELETE /habits/:id/entries/:entryId
+func (h *HabitEntryHandler) DeleteEntry(c *gin.Context) {
+	habitID := c.Param("id")
+	entryID := c.Param("entryId")
+	if err := h.service.DeleteEntry(entryID, habitID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "entry deleted"})
 }

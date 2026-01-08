@@ -81,3 +81,15 @@ func (s *HabitEntryService) MissHabit(userID, habitID string) error {
 	// reset streak
 	return s.habitRepo.ResetStreak(habitID, userID)
 }
+
+func (s *HabitEntryService) ListEntries(habitID string, startDate, endDate *time.Time) ([]models.HabitEntry, error) {
+	return s.entryRepo.ListByHabit(habitID, startDate, endDate)
+}
+
+func (s *HabitEntryService) CreateEntry(habitID string, date time.Time, status, note string) error {
+	return s.entryRepo.CreateEntry(habitID, date, status, note)
+}
+
+func (s *HabitEntryService) DeleteEntry(entryID, habitID string) error {
+	return s.entryRepo.DeleteEntry(entryID, habitID)
+}

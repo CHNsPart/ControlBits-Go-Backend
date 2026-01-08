@@ -71,6 +71,37 @@ func (r *HabitRepository) FindByUser(userID string) ([]models.Habit, error) {
 	return habits, nil
 }
 
+// READ (single habit by id)
+func (r *HabitRepository) GetByID(habitID, userID string) (*models.Habit, error) {
+	query := `
+		SELECT id, user_id, name, description,
+			   current_streak, longest_streak, is_archived,
+			   created_at, updated_at
+		FROM habits
+		WHERE id = $1 AND user_id = $2
+		LIMIT 1
+	`
+	var h models.Habit
+	err := r.db.QueryRow(query, habitID, userID).Scan(
+		&h.ID,
+		&h.UserID,
+		&h.Name,
+		&h.Description,
+		&h.CurrentStreak,
+		&h.LongestStreak,
+		&h.IsArchived,
+		&h.CreatedAt,
+		&h.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &h, nil
+}
+
 // UPDATE
 func (r *HabitRepository) Update(habit *models.Habit) error {
 	query := `
@@ -140,6 +171,28 @@ func (r *HabitRepository) ResetStreak(habitID, userID string) error {
 		UPDATE habits
 		SET current_streak = 0,
 		    updated_at = NOW()
+		WHERE id = $1 AND user_id = $2
+	`
+	_, err := r.db.Exec(query, habitID, userID)
+	return err
+}
+
+// ARCHIVE
+func (r *HabitRepository) Archive(habitID, userID string) error {
+	query := `
+		UPDATE habits
+		SET is_archived = TRUE, updated_at = NOW()
+		WHERE id = $1 AND user_id = $2
+	`
+	_, err := r.db.Exec(query, habitID, userID)
+	return err
+}
+
+// UNARCHIVE
+func (r *HabitRepository) Unarchive(habitID, userID string) error {
+	query := `
+		UPDATE habits
+		SET is_archived = FALSE, updated_at = NOW()
 		WHERE id = $1 AND user_id = $2
 	`
 	_, err := r.db.Exec(query, habitID, userID)

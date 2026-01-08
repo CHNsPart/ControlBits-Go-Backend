@@ -50,6 +50,23 @@ func (h *HabitHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, habits)
 }
 
+// GET /habits/:id
+func (h *HabitHandler) GetByID(c *gin.Context) {
+	userID := c.GetString("userID")
+	habitID := c.Param("id")
+
+	habit, err := h.service.GetByID(userID, habitID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if habit == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "habit not found"})
+		return
+	}
+	c.JSON(http.StatusOK, habit)
+}
+
 // PUT /habits/:id
 func (h *HabitHandler) Update(c *gin.Context) {
 	userID := c.GetString("userID")
@@ -84,4 +101,26 @@ func (h *HabitHandler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "habit deleted"})
+}
+
+// POST /habits/:id/archive
+func (h *HabitHandler) Archive(c *gin.Context) {
+	userID := c.GetString("userID")
+	habitID := c.Param("id")
+	if err := h.service.Archive(userID, habitID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "habit archived"})
+}
+
+// POST /habits/:id/unarchive
+func (h *HabitHandler) Unarchive(c *gin.Context) {
+	userID := c.GetString("userID")
+	habitID := c.Param("id")
+	if err := h.service.Unarchive(userID, habitID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "habit unarchived"})
 }

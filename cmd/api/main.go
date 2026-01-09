@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	"github.com/mjubayerquanfinca/habit-tracker/internal/config"
@@ -19,6 +20,12 @@ func main() {
 
 	// ---------- GIN ----------
 	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}))
 
 	// ---------- AUTH ----------
 	userRepo := repository.NewUserRepository(db)
@@ -35,6 +42,8 @@ func main() {
 	badgeRepo := repository.NewBadgeRepository(db)
 	entryService := service.NewHabitEntryService(entryRepo, habitRepo, badgeRepo)
 	entryHandler := handler.NewHabitEntryHandler(entryService)
+	badgeService := service.NewBadgeService(badgeRepo)
+	badgeHandler := handler.NewBadgeHandler(badgeService)
 
 	// ---------- ROUTES ----------
 	api := r.Group("/api/v1")
@@ -54,28 +63,39 @@ func main() {
 	protected := api.Group("/users")
 	protected.Use(middleware.JWTAuthMiddleware("super-secret-key"))
 	{
-
 		// User profile
 		protected.GET("/me", authHandler.GetMe)
 		protected.PUT("/me", authHandler.Update)
 		protected.PUT("/me/password", authHandler.ChangePassword)
 		protected.DELETE("/me", authHandler.Delete)
 
+		// User badges
+		protected.GET("/me/badges", badgeHandler.ListUserBadges)
+	}
+
+	// Protected routes without /users prefix
+	protectedAPI := api.Group("/")
+	protectedAPI.Use(middleware.JWTAuthMiddleware("super-secret-key"))
+	{
 		// Habits CRUD
-		protected.POST("/habits", habitHandler.Create)
-		protected.GET("/habits", habitHandler.GetAll)
-		protected.GET("/habits/:id", habitHandler.GetByID)
-		protected.PUT("/habits/:id", habitHandler.Update)
-		protected.DELETE("/habits/:id", habitHandler.Delete)
-		protected.POST("/habits/:id/archive", habitHandler.Archive)
-		protected.POST("/habits/:id/unarchive", habitHandler.Unarchive)
+		protectedAPI.POST("/habits", habitHandler.Create)
+		protectedAPI.GET("/habits", habitHandler.GetAll)
+		protectedAPI.GET("/habits/:id", habitHandler.GetByID)
+		protectedAPI.PUT("/habits/:id", habitHandler.Update)
+		protectedAPI.DELETE("/habits/:id", habitHandler.Delete)
+		protectedAPI.POST("/habits/:id/archive", habitHandler.Archive)
+		protectedAPI.POST("/habits/:id/unarchive", habitHandler.Unarchive)
 
 		// Habit complete / miss
-		protected.POST("/habits/:id/complete", entryHandler.Complete)
-		protected.POST("/habits/:id/miss", entryHandler.Miss)
-		protected.GET("/habits/:id/entries", entryHandler.ListEntries)
-		protected.POST("/habits/:id/entries", entryHandler.CreateEntry)
-		protected.DELETE("/habits/:id/entries/:entryId", entryHandler.DeleteEntry)
+		protectedAPI.POST("/habits/:id/complete", entryHandler.Complete)
+		protectedAPI.POST("/habits/:id/miss", entryHandler.Miss)
+		protectedAPI.GET("/habits/:id/entries", entryHandler.ListEntries)
+		protectedAPI.POST("/habits/:id/entries", entryHandler.CreateEntry)
+		protectedAPI.DELETE("/habits/:id/entries/:entryId", entryHandler.DeleteEntry)
+
+		// Badges
+		protectedAPI.GET("/badges", badgeHandler.ListAll)
+		protectedAPI.GET("/habits/:id/badges", badgeHandler.ListHabitBadges)
 	}
 
 	log.Println("API server running on :8080")

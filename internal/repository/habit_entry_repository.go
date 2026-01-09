@@ -71,9 +71,13 @@ func (r *HabitEntryRepository) ListByHabit(habitID string, startDate, endDate *t
 	var entries []models.HabitEntry
 	for rows.Next() {
 		var e models.HabitEntry
-		err := rows.Scan(&e.ID, &e.HabitID, &e.EntryDate, &e.Status, &e.Note, &e.CreatedAt)
+		var note sql.NullString
+		err := rows.Scan(&e.ID, &e.HabitID, &e.EntryDate, &e.Status, &note, &e.CreatedAt)
 		if err != nil {
 			return nil, err
+		}
+		if note.Valid {
+			e.Note = note.String
 		}
 		entries = append(entries, e)
 	}

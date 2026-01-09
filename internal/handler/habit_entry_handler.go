@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -76,6 +77,7 @@ func (h *HabitEntryHandler) ListEntries(c *gin.Context) {
 
 // POST /habits/:id/entries
 func (h *HabitEntryHandler) CreateEntry(c *gin.Context) {
+	userID := c.GetString("userID")
 	habitID := c.Param("id")
 	var req struct {
 		Date   string `json:"date"`
@@ -86,16 +88,25 @@ func (h *HabitEntryHandler) CreateEntry(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
+	status := strings.ToLower(req.Status)
+	if status != "completed" && status != "missed" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be completed or missed"})
+		return
+	}
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format (use YYYY-MM-DD)"})
 		return
 	}
-	if err := h.service.CreateEntry(habitID, date, req.Status, req.Note); err != nil {
+	badges, err := h.service.CreateEntry(userID, habitID, date, status, req.Note)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "entry created"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":    "entry created",
+		"new_badges": badges,
+	})
 }
 
 // DELETE /habits/:id/entries/:entryId

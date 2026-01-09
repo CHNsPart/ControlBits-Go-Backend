@@ -77,7 +77,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.authService.Login(req.Email, req.Password)
+	tokenPair, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": err.Error(),
@@ -86,7 +86,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"access_token": accessToken,
+		"access_token":  tokenPair.AccessToken,
+		"refresh_token": tokenPair.RefreshToken,
 		"message":      "login successful",
 	})
 }

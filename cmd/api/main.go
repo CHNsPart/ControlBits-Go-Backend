@@ -29,8 +29,10 @@ func main() {
 
 	// ---------- AUTH ----------
 	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(userRepo, "super-secret-key")
 	authHandler := handler.NewAuthHandler(authService)
+	userHandler := handler.NewUserHandler(userService)
 
 	// ---------- HABITS ----------
 	habitRepo := repository.NewHabitRepository(db)
@@ -60,18 +62,18 @@ func main() {
 	}
 
 	// Protected routes
-	protected := api.Group("/users")
-	protected.Use(middleware.JWTAuthMiddleware("super-secret-key"))
-	{
-		// User profile
-		protected.GET("/me", authHandler.GetMe)
-		protected.PUT("/me", authHandler.Update)
-		protected.PUT("/me/password", authHandler.ChangePassword)
-		protected.DELETE("/me", authHandler.Delete)
+	       protected := api.Group("/users")
+	       protected.Use(middleware.JWTAuthMiddleware("super-secret-key"))
+	       {
+		       // User profile
+		       protected.GET("/me", userHandler.GetMe)
+		       protected.PUT("/me", userHandler.Update)
+		       protected.PUT("/me/password", authHandler.ChangePassword)
+		       protected.DELETE("/me", userHandler.Delete)
 
-		// User badges
-		protected.GET("/me/badges", badgeHandler.ListUserBadges)
-	}
+		       // User badges
+		       protected.GET("/me/badges", badgeHandler.ListUserBadges)
+	       }
 
 	// Protected routes without /users prefix
 	protectedAPI := api.Group("/")

@@ -5,18 +5,22 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/mjubayerquanfinca/habit-tracker/internal/models"
 	"github.com/mjubayerquanfinca/habit-tracker/internal/repository"
 	"github.com/mjubayerquanfinca/habit-tracker/pkg/utils"
 )
 
+type resetTokenData struct {
+	UserID    string
+	CreatedAt time.Time
+}
+
 type AuthService struct {
 	userRepo      *repository.UserRepository
 	jwtSecret     string
-	refreshTokens map[string]string // userID -> refreshToken
-	resetTokens   map[string]string // resetToken -> userID
+	refreshTokens map[string]string         // userID -> refreshToken
+	resetTokens   map[string]resetTokenData // resetToken -> data
 }
 
 // constructor
@@ -25,7 +29,7 @@ func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *Auth
 		userRepo:      userRepo,
 		jwtSecret:     jwtSecret,
 		refreshTokens: make(map[string]string),
-		resetTokens:   make(map[string]string),
+		resetTokens:   make(map[string]resetTokenData),
 	}
 }
 
@@ -37,26 +41,33 @@ func (s *AuthService) RequestPasswordReset(email string) (string, error) {
 	}
 	// Generate a simple random token (use a secure method in production)
 	resetToken := utils.GenerateUUID()
-	s.resetTokens[resetToken] = user.ID
+	s.resetTokens[resetToken] = resetTokenData{
+		UserID:    user.ID,
+		CreatedAt: time.Now(),
+	}
 	// Simulate sending email by returning the token (in production, send via email)
 	return resetToken, nil
 }
 
 // ConfirmPasswordReset validates the reset token and updates the user's password
 func (s *AuthService) ConfirmPasswordReset(resetToken, newPassword string) error {
-	userID, ok := s.resetTokens[resetToken]
+	data, ok := s.resetTokens[resetToken]
 	if !ok {
 		return errors.New("invalid or expired reset token")
 	}
-	user, err := s.userRepo.FindByID(userID)
+	if time.Since(data.CreatedAt) > time.Hour {
+		delete(s.resetTokens, resetToken)
+		return errors.New("reset token has expired")
+	}
+	user, err := s.userRepo.FindByID(data.UserID)
 	if err != nil {
 		return err
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	hashedPassword, err := utils.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
-	user.PasswordHash = string(hashedPassword)
+	user.PasswordHash = hashedPassword
 	err = s.userRepo.Update(user)
 	if err != nil {
 		return err
@@ -69,10 +80,7 @@ func (s *AuthService) ConfirmPasswordReset(resetToken, newPassword string) error
 // REGISTER
 func (s *AuthService) Register(email, password, name string) error {
 	// password hash
-	hashedPassword, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
-		bcrypt.DefaultCost,
-	)
+	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
 		return err
 	}
@@ -80,7 +88,7 @@ func (s *AuthService) Register(email, password, name string) error {
 	user := &models.User{
 		ID:           utils.GenerateUUID(),
 		Email:        email,
-		PasswordHash: string(hashedPassword),
+		PasswordHash: hashedPassword,
 		Name:         name,
 	}
 
@@ -100,10 +108,7 @@ func (s *AuthService) Login(email, password string) (*TokenPair, error) {
 	}
 
 	// password match
-	err = bcrypt.CompareHashAndPassword(
-		[]byte(user.PasswordHash),
-		[]byte(password),
-	)
+	err = utils.CheckPasswordHash(password, user.PasswordHash)
 	if err != nil {
 		return nil, errors.New("invalid email or password")
 	}
@@ -170,32 +175,6 @@ func (s *AuthService) RefreshAccessToken(refreshTokenString string) (string, err
 	return accessTokenString, nil
 }
 
-// UpdateUser updates user info (email, name, password)
-func (s *AuthService) UpdateUser(userID, email, name string) error {
-	user, err := s.userRepo.FindByID(userID)
-	if err != nil {
-		return err
-	}
-	if email != "" {
-		user.Email = email
-	}
-	if name != "" {
-		user.Name = name
-	}
-
-	return s.userRepo.Update(user)
-}
-
-// DeleteUser deletes a user by ID
-func (s *AuthService) DeleteUser(userID string) error {
-	return s.userRepo.Delete(userID)
-}
-
-// GetUserByID returns user by ID
-func (s *AuthService) GetUserByID(userID string) (*models.User, error) {
-	return s.userRepo.FindByID(userID)
-}
-
 // ChangePassword changes the password for a user after verifying the old password
 func (s *AuthService) ChangePassword(userID, oldPassword, newPassword string) error {
 	user, err := s.userRepo.FindByID(userID)
@@ -203,14 +182,14 @@ func (s *AuthService) ChangePassword(userID, oldPassword, newPassword string) er
 		return err
 	}
 	// Verify old password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+	if err := utils.CheckPasswordHash(oldPassword, user.PasswordHash); err != nil {
 		return errors.New("old password is incorrect")
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	hashedPassword, err := utils.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
-	user.PasswordHash = string(hashedPassword)
+	user.PasswordHash = hashedPassword
 	return s.userRepo.Update(user)
 }
 

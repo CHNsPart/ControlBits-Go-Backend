@@ -97,14 +97,14 @@ func (r *UserRepository) FindByID(userID string) (*models.User, error) {
 func (r *UserRepository) Update(user *models.User) error {
 	query := `
 			UPDATE users
-			SET email = $1, name = $2, updated_at = NOW()
-			WHERE id = $3
+			SET email = $1, name = $2, password_hash = $3, updated_at = NOW()
+			WHERE id = $4
 		`
-
 	_, err := r.db.Exec(
 		query,
 		user.Email,
 		user.Name,
+		user.PasswordHash,
 		user.ID,
 	)
 	return err

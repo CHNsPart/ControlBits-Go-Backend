@@ -14,14 +14,14 @@ func NewHabitService(repo *repository.HabitRepository) *HabitService {
 	return &HabitService{repo: repo}
 }
 
-func (s *HabitService) Create(userID, name, description string) error {
-	habit := &models.Habit{
-		ID:          utils.GenerateUUID(),
-		UserID:      userID,
-		Name:        name,
-		Description: description,
-	}
-	return s.repo.Create(habit)
+func (s *HabitService) Create(userID, name, description string) (string, error) {
+       habit := &models.Habit{
+	       ID:          utils.GenerateUUID(),
+	       UserID:      userID,
+	       Name:        name,
+	       Description: description,
+       }
+       return s.repo.Create(habit)
 }
 
 func (s *HabitService) GetAll(userID string) ([]models.Habit, error) {

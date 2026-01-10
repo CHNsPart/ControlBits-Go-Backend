@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mjubayerquanfinca/habit-tracker/internal/dto"
 	"github.com/mjubayerquanfinca/habit-tracker/internal/service"
 )
 
@@ -19,22 +20,17 @@ func NewHabitHandler(service *service.HabitService) *HabitHandler {
 func (h *HabitHandler) Create(c *gin.Context) {
 	userID := c.GetString("userID")
 
-	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil || req.Name == "" {
+	var req dto.CreateHabitRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
-
-	if err := h.service.Create(userID, req.Name, req.Description); err != nil {
+	id, err := h.service.Create(userID, req.Name, req.Description)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "habit created"})
+	c.JSON(http.StatusCreated, dto.CreateHabitResponse{ID: id, Message: "habit created"})
 }
 
 // GET /habits
@@ -46,8 +42,20 @@ func (h *HabitHandler) GetAll(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, habits)
+	var resp dto.ListHabitsResponse
+	for _, h := range habits {
+		resp.Habits = append(resp.Habits, dto.GetHabitResponse{
+			ID:            h.ID,
+			Name:          h.Name,
+			Description:   h.Description,
+			CurrentStreak: h.CurrentStreak,
+			LongestStreak: h.LongestStreak,
+			CreatedAt:     h.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			UpdatedAt:     h.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			Archived:      h.IsArchived,
+		})
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // GET /habits/:id
@@ -64,7 +72,17 @@ func (h *HabitHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "habit not found"})
 		return
 	}
-	c.JSON(http.StatusOK, habit)
+	resp := dto.GetHabitResponse{
+		ID:            habit.ID,
+		Name:          habit.Name,
+		Description:   habit.Description,
+		CurrentStreak: habit.CurrentStreak,
+		LongestStreak: habit.LongestStreak,
+		CreatedAt:     habit.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:     habit.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Archived:      habit.IsArchived,
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // PUT /habits/:id
@@ -72,22 +90,16 @@ func (h *HabitHandler) Update(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
 
-	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
-
+	var req dto.UpdateHabitRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
-
 	if err := h.service.Update(userID, habitID, req.Name, req.Description); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "habit updated"})
+	c.JSON(http.StatusOK, dto.UpdateHabitResponse{Message: "habit updated"})
 }
 
 // DELETE /habits/:id
@@ -99,8 +111,7 @@ func (h *HabitHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "habit deleted"})
+	c.JSON(http.StatusOK, dto.DeleteHabitResponse{Message: "habit deleted"})
 }
 
 // POST /habits/:id/archive
@@ -111,7 +122,7 @@ func (h *HabitHandler) Archive(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "habit archived"})
+	c.JSON(http.StatusOK, dto.ArchiveHabitResponse{Message: "habit archived"})
 }
 
 // POST /habits/:id/unarchive
@@ -122,5 +133,5 @@ func (h *HabitHandler) Unarchive(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "habit unarchived"})
+	c.JSON(http.StatusOK, dto.ArchiveHabitResponse{Message: "habit unarchived"})
 }

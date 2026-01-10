@@ -86,19 +86,20 @@ func (s *HabitEntryService) ListEntries(habitID string, startDate, endDate *time
 	return s.entryRepo.ListByHabit(habitID, startDate, endDate)
 }
 
-func (s *HabitEntryService) CreateEntry(userID, habitID string, date time.Time, status, note string) ([]models.Badge, error) {
+func (s *HabitEntryService) CreateEntry(userID, habitID string, date time.Time, status, note string) (string, []models.Badge, error) {
 	normalizedDate := startOfDay(date)
 
 	exists, err := s.entryRepo.ExistsForDate(habitID, normalizedDate)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	if exists {
-		return nil, errors.New("entry already exists for date")
+		return "", nil, errors.New("entry already exists for date")
 	}
 
-	if err := s.entryRepo.CreateEntry(habitID, normalizedDate, status, note); err != nil {
-		return nil, err
+	entryID, err := s.entryRepo.CreateEntry(habitID, normalizedDate, status, note)
+	if err != nil {
+		return "", nil, err
 	}
 
 	switch status {
@@ -106,20 +107,20 @@ func (s *HabitEntryService) CreateEntry(userID, habitID string, date time.Time, 
 		previousDate := normalizedDate.AddDate(0, 0, -1)
 		currentStreak, _, err := s.habitRepo.UpdateStreakOnCompletion(habitID, userID, previousDate)
 		if err != nil {
-			return nil, err
+			return entryID, nil, err
 		}
 		badges, err := s.badgeRepo.AwardBadgesForStreak(userID, habitID, currentStreak)
 		if err != nil {
-			return nil, err
+			return entryID, nil, err
 		}
-		return badges, nil
+		return entryID, badges, nil
 	case "missed":
 		if err := s.habitRepo.ResetStreak(habitID, userID); err != nil {
-			return nil, err
+			return entryID, nil, err
 		}
-		return nil, nil
+		return entryID, nil, nil
 	default:
-		return nil, errors.New("invalid status")
+		return entryID, nil, errors.New("invalid status")
 	}
 }
 

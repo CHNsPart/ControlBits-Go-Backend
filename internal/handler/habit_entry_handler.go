@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mjubayerquanfinca/habit-tracker/internal/dto"
 	"github.com/mjubayerquanfinca/habit-tracker/internal/service"
 )
 
@@ -72,18 +73,25 @@ func (h *HabitEntryHandler) ListEntries(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, entries)
+	var resp dto.ListHabitEntriesResponse
+	for _, e := range entries {
+		resp.Entries = append(resp.Entries, dto.HabitEntryResponse{
+			ID:        e.ID,
+			HabitID:   e.HabitID,
+			EntryDate: e.EntryDate.Format("2006-01-02"),
+			Status:    e.Status,
+			Note:      e.Note,
+			CreatedAt: e.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // POST /habits/:id/entries
 func (h *HabitEntryHandler) CreateEntry(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
-	var req struct {
-		Date   string `json:"date"`
-		Status string `json:"status"`
-		Note   string `json:"note"`
-	}
+	var req dto.CreateHabitEntryRequest
 	if err := c.ShouldBindJSON(&req); err != nil || req.Status == "" || req.Date == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
@@ -98,14 +106,19 @@ func (h *HabitEntryHandler) CreateEntry(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format (use YYYY-MM-DD)"})
 		return
 	}
-	badges, err := h.service.CreateEntry(userID, habitID, date, status, req.Note)
+	entryID, badges, err := h.service.CreateEntry(userID, habitID, date, status, req.Note)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{
-		"message":    "entry created",
-		"new_badges": badges,
+	var badgeIDs []string
+	for _, b := range badges {
+		badgeIDs = append(badgeIDs, b.ID)
+	}
+	c.JSON(http.StatusCreated, dto.CreateHabitEntryResponse{
+		ID:        entryID,
+		Message:   "entry created",
+		NewBadges: badgeIDs,
 	})
 }
 
@@ -117,5 +130,5 @@ func (h *HabitEntryHandler) DeleteEntry(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "entry deleted"})
+	c.JSON(http.StatusOK, dto.DeleteHabitEntryResponse{Message: "entry deleted"})
 }

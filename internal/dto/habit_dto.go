@@ -25,12 +25,14 @@ type UpdateHabitResponse struct {
 
 // GetHabitResponse is the response for getting a single habit
 type GetHabitResponse struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
-	Archived    bool   `json:"archived"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	CurrentStreak int    `json:"current_streak"`
+	LongestStreak int    `json:"longest_streak"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
+	Archived      bool   `json:"archived"`
 }
 
 // ListHabitsResponse is the response for listing all habits

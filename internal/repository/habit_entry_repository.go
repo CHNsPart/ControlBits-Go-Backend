@@ -85,13 +85,15 @@ func (r *HabitEntryRepository) ListByHabit(habitID string, startDate, endDate *t
 }
 
 // Create entry for arbitrary date/status
-func (r *HabitEntryRepository) CreateEntry(habitID string, date time.Time, status, note string) error {
-	query := `
-		INSERT INTO habit_entries (id, habit_id, entry_date, status, note, created_at)
-		VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
-	`
-	_, err := r.db.Exec(query, habitID, date, status, note)
-	return err
+func (r *HabitEntryRepository) CreateEntry(habitID string, date time.Time, status, note string) (string, error) {
+       query := `
+	       INSERT INTO habit_entries (id, habit_id, entry_date, status, note, created_at)
+	       VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
+	       RETURNING id
+       `
+       var entryID string
+       err := r.db.QueryRow(query, habitID, date, status, note).Scan(&entryID)
+       return entryID, err
 }
 
 // Delete entry by ID

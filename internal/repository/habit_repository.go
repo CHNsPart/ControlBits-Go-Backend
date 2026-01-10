@@ -16,19 +16,21 @@ func NewHabitRepository(db *sql.DB) *HabitRepository {
 }
 
 // CREATE
-func (r *HabitRepository) Create(habit *models.Habit) error {
-	query := `
-		INSERT INTO habits (id, user_id, name, description)
-		VALUES ($1, $2, $3, $4)
-	`
-	_, err := r.db.Exec(
-		query,
-		habit.ID,
-		habit.UserID,
-		habit.Name,
-		habit.Description,
-	)
-	return err
+func (r *HabitRepository) Create(habit *models.Habit) (string, error) {
+       query := `
+	       INSERT INTO habits (id, user_id, name, description)
+	       VALUES ($1, $2, $3, $4)
+	       RETURNING id
+       `
+       var id string
+       err := r.db.QueryRow(
+	       query,
+	       habit.ID,
+	       habit.UserID,
+	       habit.Name,
+	       habit.Description,
+       ).Scan(&id)
+       return id, err
 }
 
 // READ (all habits of a user)

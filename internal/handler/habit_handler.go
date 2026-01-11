@@ -16,7 +16,17 @@ func NewHabitHandler(service *service.HabitService) *HabitHandler {
 	return &HabitHandler{service: service}
 }
 
-// POST /habits
+// Create godoc
+// @Summary Create a new habit
+// @Tags Habits
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dto.CreateHabitRequest true "Create habit request"
+// @Success 201 {object} dto.CreateHabitResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits [post]
 func (h *HabitHandler) Create(c *gin.Context) {
 	userID := c.GetString("userID")
 
@@ -33,7 +43,14 @@ func (h *HabitHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, dto.CreateHabitResponse{ID: id, Message: "habit created"})
 }
 
-// GET /habits
+// GetAll godoc
+// @Summary List habits for current user
+// @Tags Habits
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} dto.ListHabitsResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits [get]
 func (h *HabitHandler) GetAll(c *gin.Context) {
 	userID := c.GetString("userID")
 
@@ -58,7 +75,16 @@ func (h *HabitHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// GET /habits/:id
+// GetByID godoc
+// @Summary Get a habit by ID
+// @Tags Habits
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Success 200 {object} dto.GetHabitResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id} [get]
 func (h *HabitHandler) GetByID(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
@@ -85,7 +111,18 @@ func (h *HabitHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// PUT /habits/:id
+// Update godoc
+// @Summary Update a habit by ID
+// @Tags Habits
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Param request body dto.UpdateHabitRequest true "Update habit request"
+// @Success 200 {object} dto.UpdateHabitResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id} [put]
 func (h *HabitHandler) Update(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
@@ -102,7 +139,15 @@ func (h *HabitHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.UpdateHabitResponse{Message: "habit updated"})
 }
 
-// DELETE /habits/:id
+// Delete godoc
+// @Summary Delete a habit by ID
+// @Tags Habits
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Success 200 {object} dto.DeleteHabitResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id} [delete]
 func (h *HabitHandler) Delete(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
@@ -114,7 +159,15 @@ func (h *HabitHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.DeleteHabitResponse{Message: "habit deleted"})
 }
 
-// POST /habits/:id/archive
+// Archive godoc
+// @Summary Archive a habit
+// @Tags Habits
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Success 200 {object} dto.ArchiveHabitResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id}/archive [post]
 func (h *HabitHandler) Archive(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
@@ -125,7 +178,15 @@ func (h *HabitHandler) Archive(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.ArchiveHabitResponse{Message: "habit archived"})
 }
 
-// POST /habits/:id/unarchive
+// Unarchive godoc
+// @Summary Unarchive a habit
+// @Tags Habits
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Success 200 {object} dto.ArchiveHabitResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id}/unarchive [post]
 func (h *HabitHandler) Unarchive(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")

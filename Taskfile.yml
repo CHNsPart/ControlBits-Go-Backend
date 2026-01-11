@@ -1,0 +1,13 @@
+version: "3"
+
+tasks:
+  swagger:
+    desc: Generate Swagger/OpenAPI docs
+    cmds:
+      - swag init -g main.go -d cmd/api,internal/handler,internal/dto,internal/models,internal/middleware,internal/service,internal/repository -o docs
+  build:
+    desc: Generate Swagger docs and build the API binary
+    deps:
+      - swagger
+    cmds:
+      - go build -o bin/controlbits-api ./cmd/api

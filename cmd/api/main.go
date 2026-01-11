@@ -5,7 +5,10 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "github.com/mjubayerquanfinca/habit-tracker/docs"
 	"github.com/mjubayerquanfinca/habit-tracker/internal/config"
 	"github.com/mjubayerquanfinca/habit-tracker/internal/handler"
 	"github.com/mjubayerquanfinca/habit-tracker/internal/middleware"
@@ -13,6 +16,14 @@ import (
 	"github.com/mjubayerquanfinca/habit-tracker/internal/service"
 )
 
+// @title ControlBits API
+// @version 1.0.0
+// @description Backend API for ControlBits habit tracking.
+// @BasePath /api/v1
+// @schemes http
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// ---------- DB ----------
 	db := config.ConnectDB()
@@ -26,6 +37,12 @@ func main() {
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
+	// Swagger UI + spec
+	r.StaticFile("/swagger.yaml", "./docs/swagger.yaml")
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(
+		swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),
+	))
 
 	// ---------- AUTH ----------
 	userRepo := repository.NewUserRepository(db)

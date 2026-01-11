@@ -18,7 +18,15 @@ func NewHabitEntryHandler(service *service.HabitEntryService) *HabitEntryHandler
 	return &HabitEntryHandler{service: service}
 }
 
-// POST /habits/:id/complete
+// Complete godoc
+// @Summary Mark a habit as completed today
+// @Tags Entries
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Success 200 {object} CompleteHabitResponse
+// @Failure 400 {object} ErrorResponse
+// @Router /habits/{id}/complete [post]
 func (h *HabitEntryHandler) Complete(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
@@ -35,7 +43,15 @@ func (h *HabitEntryHandler) Complete(c *gin.Context) {
 	})
 }
 
-// POST /habits/:id/miss
+// Miss godoc
+// @Summary Mark a habit as missed today
+// @Tags Entries
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Success 200 {object} MissHabitResponse
+// @Failure 400 {object} ErrorResponse
+// @Router /habits/{id}/miss [post]
 func (h *HabitEntryHandler) Miss(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
@@ -48,7 +64,17 @@ func (h *HabitEntryHandler) Miss(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "habit marked as missed"})
 }
 
-// GET /habits/:id/entries
+// ListEntries godoc
+// @Summary List habit entries
+// @Tags Entries
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Param start_date query string false "Start date (YYYY-MM-DD)"
+// @Param end_date query string false "End date (YYYY-MM-DD)"
+// @Success 200 {object} dto.ListHabitEntriesResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id}/entries [get]
 func (h *HabitEntryHandler) ListEntries(c *gin.Context) {
 	habitID := c.Param("id")
 	var startDatePtr, endDatePtr *time.Time
@@ -87,7 +113,18 @@ func (h *HabitEntryHandler) ListEntries(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// POST /habits/:id/entries
+// CreateEntry godoc
+// @Summary Create a habit entry for a specific date
+// @Tags Entries
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Param request body dto.CreateHabitEntryRequest true "Create habit entry request"
+// @Success 201 {object} dto.CreateHabitEntryResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id}/entries [post]
 func (h *HabitEntryHandler) CreateEntry(c *gin.Context) {
 	userID := c.GetString("userID")
 	habitID := c.Param("id")
@@ -122,7 +159,16 @@ func (h *HabitEntryHandler) CreateEntry(c *gin.Context) {
 	})
 }
 
-// DELETE /habits/:id/entries/:entryId
+// DeleteEntry godoc
+// @Summary Delete a habit entry
+// @Tags Entries
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Habit ID"
+// @Param entryId path string true "Entry ID"
+// @Success 200 {object} dto.DeleteHabitEntryResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /habits/{id}/entries/{entryId} [delete]
 func (h *HabitEntryHandler) DeleteEntry(c *gin.Context) {
 	habitID := c.Param("id")
 	entryID := c.Param("entryId")

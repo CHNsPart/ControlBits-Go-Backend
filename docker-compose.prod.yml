@@ -1,0 +1,34 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - controlbits:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: controlbits
+      DB_PASSWORD: controlbits123
+      DB_NAME: controlbits_db
+      DB_SSLMODE: disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: controlbits
+      POSTGRES_PASSWORD: controlbits123
+      POSTGRES_DB: controlbits_db
+    volumes:
+      - controlbits_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  controlbits_pgdata:

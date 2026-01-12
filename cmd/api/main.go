@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -79,18 +80,18 @@ func main() {
 	}
 
 	// Protected routes
-	       protected := api.Group("/users")
-	       protected.Use(middleware.JWTAuthMiddleware("super-secret-key"))
-	       {
-		       // User profile
-		       protected.GET("/me", userHandler.GetMe)
-		       protected.PUT("/me", userHandler.Update)
-		       protected.PUT("/me/password", authHandler.ChangePassword)
-		       protected.DELETE("/me", userHandler.Delete)
+	protected := api.Group("/users")
+	protected.Use(middleware.JWTAuthMiddleware("super-secret-key"))
+	{
+		// User profile
+		protected.GET("/me", userHandler.GetMe)
+		protected.PUT("/me", userHandler.Update)
+		protected.PUT("/me/password", authHandler.ChangePassword)
+		protected.DELETE("/me", userHandler.Delete)
 
-		       // User badges
-		       protected.GET("/me/badges", badgeHandler.ListUserBadges)
-	       }
+		// User badges
+		protected.GET("/me/badges", badgeHandler.ListUserBadges)
+	}
 
 	// Protected routes without /users prefix
 	protectedAPI := api.Group("/")
@@ -117,6 +118,17 @@ func main() {
 		protectedAPI.GET("/habits/:id/badges", badgeHandler.ListHabitBadges)
 	}
 
-	log.Println("API server running on :8080")
-	r.Run(":8080")
+	// Start HTTPS server
+	go func() {
+		if err := r.RunTLS(":443", "cert.pem", "key.pem"); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// Redirect HTTP to HTTPS
+	if err := http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "https://"+req.Host+req.RequestURI, http.StatusMovedPermanently)
+	})); err != nil {
+		log.Fatal(err)
+	}
 }
